@@ -1,11 +1,11 @@
 export const texts = [
-    'My first super text!',
-    'My second super text!',
-    'My third super text!',
-    'My fourth super text!',
-    'My fifth super text!',
-    'My sixth super text!',
-    'My seventh super text!'
+    'The first super text!',
+    'The second super text!',
+    'The third super text!',
+    'The fourth super text!',
+    'The fifth super text!',
+    'The sixth super text!',
+    'The seventh super text!'
 ];
 
 export default { texts };

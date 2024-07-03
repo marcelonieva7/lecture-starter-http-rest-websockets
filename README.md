@@ -4,7 +4,7 @@
 
 1. **`npm install`** at the root
 2. **`npm run dev`** at the root
-3. open **`http://localhost:3333/`**
+3. open **`http://localhost:3001/`**
 
 ## 🧹 Code style
 
