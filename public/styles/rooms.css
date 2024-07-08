@@ -1,5 +1,6 @@
 #rooms-wrapper {
     display: flex;
+    flex-wrap: wrap;
 }
 
 #add-room-btn {
