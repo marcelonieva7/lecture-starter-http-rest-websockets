@@ -29,15 +29,23 @@ const getUsersInRoom = (io: Namespace, roomName: string): User[] => {
     .filter((user): user is User => user !== undefined);
 };
 
-const checkIfAllUsersAreReady = (io: Namespace, roomName: string ): void => {
+const startGame = (io: Namespace, roomName: string ) => {
+  io.to(roomName).emit("START_TIMER", {
+    SECONDS_TIMER_BEFORE_START_GAME,
+    textId : getRandomTextId(texts)
+  });
+
+  setTimeout(() => {
+    io.to(roomName).emit("START_GAME", SECONDS_FOR_GAME);
+    setTimeout(() => io.to(roomName).emit("END_GAME"), SECONDS_FOR_GAME * 1000);
+  }, SECONDS_TIMER_BEFORE_START_GAME * 1000);
+}
+
+const checkIfAllUsersAreReady = (io: Namespace, roomName: string): void => {
   const usersInRoom = getUsersInRoom(io, roomName);
 
   if (usersInRoom.every(user => user.isReady)) {
-    io.to(roomName).emit("START_GAME", {
-      SECONDS_TIMER_BEFORE_START_GAME,
-      SECONDS_FOR_GAME,
-      textId : getRandomTextId(texts)
-    });
+    startGame(io, roomName);
   }
 }
 

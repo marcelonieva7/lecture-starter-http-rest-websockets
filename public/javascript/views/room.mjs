@@ -69,7 +69,6 @@ const addTimer = (secondsLeft, id) => {
         if (secondsLeft === 0) {
             clearInterval(interval);
             timerElement.classList.add('display-none');
-            resolve();
         }
         timerElement.innerText = secondsLeft;
 
