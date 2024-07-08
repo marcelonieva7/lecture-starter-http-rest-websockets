@@ -3,4 +3,9 @@ type Room = {
   isHidden: boolean;
 };
 
-export { type Room };
+type User = {
+  name: string;
+  isReady: boolean;
+}
+
+export { type Room, type User };
