@@ -69,4 +69,15 @@ const removeUserElement = username => document.querySelector(`.user[data-usernam
 
 const getReadySign = ready => (ready ? '🟢' : '🔴');
 
-export { appendUserElement, changeReadyStatus, setProgress, removeUserElement };
+const wipeUsers = () => {
+    const usersContainer = document.querySelector('#users-wrapper');
+    usersContainer.innerHTML = '';
+};
+
+export {
+    appendUserElement,
+    changeReadyStatus,
+    setProgress,
+    removeUserElement,
+    wipeUsers    
+};
