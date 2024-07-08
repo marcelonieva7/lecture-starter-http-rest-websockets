@@ -17,6 +17,8 @@ if (!username) {
 
 const socket = io("http://localhost:3001/game", { query: { username } });
 
+let text = ''
+
 const showPage = (page) => {
     removeClass(page, 'display-none');
     const hidePage = page === gamePage ? roomsPage : gamePage;
@@ -103,6 +105,59 @@ socket.on("DELETE_USER_IN_ROOM", user => {
 socket.on("UPDATE_USERS_STATUS", user => {
     changeReadyStatus({ username: user.name, ready: user.isReady });
 })
+
+socket.on("START_TIMER", ({
+    SECONDS_TIMER_BEFORE_START_GAME,
+    textId
+}) => {
+    console.log('START_TIMER');
+    addClass(readyBtn, 'display-none');
+    addClass(quitRoomBtn, 'display-none');
+
+    fetch(`/game/texts/${textId}`, { method: 'GET' }).then(async res => {
+        const resJson = await res.json();
+        text = resJson.text;
+    })
+
+    startTimer(SECONDS_TIMER_BEFORE_START_GAME);
+})
+
+socket.on("START_GAME", SECONDS_FOR_GAME => {
+    console.log('START_GAME');
+    innerText(text);
+    gameTimer(SECONDS_FOR_GAME)
+})
+
+socket.on("END_GAME", () => {
+    console.log('END_GAME');
+})
+
+
+    /* gameTimer(SECONDS_FOR_GAME).then(() => {
+        console.log("termino el juego");
+    }) */
+    
+    /* let keyIdx = 0;
+    window.addEventListener('keydown', (ev) => {
+        const textArr = text.split('');
+        const currentKey = textArr[keyIdx];
+
+        if (!ev.repeat){
+            const { key } = ev;
+            if (key === currentKey) {
+                keyIdx+= 1;
+                const progress = Math.round((keyIdx / textArr.length) * 100);
+                setProgress({ username, progress });
+                if (progress === 100) {
+                    alert('Ganaste');
+                    innerText(`<mark>${text}</mark>`)
+                    return
+                }
+                innerText(`<mark>${textArr.slice(0, keyIdx).join('')}</mark><span style="font-weight: bold; font-size: 20px; text-decoration: underline;">${textArr[keyIdx]}</span><span>${textArr.slice(keyIdx + 1).join('')}</span>`);
+            }
+            console.log(key, currentKey, keyIdx);
+        }
+    }) */
 
 
 addRoomBtn.addEventListener('click', () => {
