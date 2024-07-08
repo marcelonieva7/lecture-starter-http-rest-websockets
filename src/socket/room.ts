@@ -35,10 +35,13 @@ const startGame = (io: Namespace, roomName: string ) => {
     textId : getRandomTextId(texts)
   });
 
+  const startGameTimeout = SECONDS_TIMER_BEFORE_START_GAME * 1000;
+  const gameDurationTimeout = SECONDS_FOR_GAME * 1000;
+
   setTimeout(() => {
     io.to(roomName).emit("START_GAME", SECONDS_FOR_GAME);
-    setTimeout(() => io.to(roomName).emit("END_GAME"), SECONDS_FOR_GAME * 1000);
-  }, SECONDS_TIMER_BEFORE_START_GAME * 1000);
+    setTimeout(() => io.to(roomName).emit("END_GAME"), gameDurationTimeout);
+  }, startGameTimeout);
 }
 
 const checkIfAllUsersAreReady = (io: Namespace, roomName: string): void => {
