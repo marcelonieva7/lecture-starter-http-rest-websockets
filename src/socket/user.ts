@@ -1,9 +1,10 @@
 import { Namespace } from "socket.io";
+import { type User } from "./types.js";
 
-const users: string[] = [];
+export const users = new Map<string, User>();
 
 const checkUsername = (username: string) => {
-  return users.includes(username);
+  return Array.from(users.values()).some(({ name }) => name === username);
 };
 
 const isString = (username: unknown): username is string => (typeof username == "string");
@@ -18,11 +19,11 @@ export default (io: Namespace) => {
         io.to(socket.id).emit("username-taken");
         socket.disconnect();
       } else {
-        users.push(username);
+        users.set(socket.id, { name: username, isReady: false });
       }
 
       socket.on("disconnect", () => {
-        users.splice(users.indexOf(username), 1);
+        users.delete(socket.id);
         console.log(`${username} ${socket.id} disconnected`);
       });
 
