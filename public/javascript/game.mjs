@@ -1,7 +1,7 @@
 import { addClass, removeClass } from './helpers/dom-helper.mjs';
 import { showMessageModal, showInputModal } from './views/modal.mjs';
-import { appendRoomElement, hideRoom, removeRoomElement, showRoom, updateNumberOfUsersInRoom } from './views/room.mjs';
-import { appendUserElement } from './views/user.mjs';
+import { startTimer, appendRoomElement, gameTimer, hideRoom, removeRoomElement, showRoom, updateNumberOfUsersInRoom, innerText } from './views/room.mjs';
+import { appendUserElement, changeReadyStatus, removeUserElement, setProgress, wipeUsers } from './views/user.mjs';
 
 const username = sessionStorage.getItem('username');
 
@@ -9,6 +9,7 @@ const gamePage = document.getElementById('game-page');
 const roomsPage = document.getElementById('rooms-page');
 const addRoomBtn = document.getElementById('add-room-btn');
 const quitRoomBtn  = document.getElementById('quit-room-btn');
+const readyBtn  = document.getElementById('ready-btn');
 
 if (!username) {
     window.location.replace('/signin');
@@ -78,6 +79,31 @@ socket.on("UPDATE_ROOM", ([roomName, { numberOfUsers, isHidden }]) => {
 
 socket.on("DELETE_ROOM", name => removeRoomElement(name));
 
+socket.on("SHOW_USERS_IN_ROOM" , users => {
+    console.log('SHOW_USERS_IN_ROOM', users);
+    users.forEach(user => appendUserElement({
+       username: user.name,
+       ready: user.isReady,
+       isCurrentUser: user.name === username
+    }));
+})
+
+socket.on("ADD_USER_IN_ROOM", user => {
+    appendUserElement({
+        username: user.name,
+        ready: user.isReady,
+        isCurrentUser: user.name === username
+    })
+})
+
+socket.on("DELETE_USER_IN_ROOM", user => {
+    removeUserElement(user.name)
+})
+
+socket.on("UPDATE_USERS_STATUS", user => {
+    changeReadyStatus({ username: user.name, ready: user.isReady });
+})
+
 
 addRoomBtn.addEventListener('click', () => {
     let roomName = ''
@@ -93,5 +119,19 @@ addRoomBtn.addEventListener('click', () => {
 
 quitRoomBtn.addEventListener('click', () => {
     socket.emit('quit-room');
+    wipeUsers();
     showPage(roomsPage);
+})
+
+readyBtn.addEventListener('click', () => {
+    const isReady = readyBtn.textContent === 'READY';
+    if (isReady) {
+        socket.emit('READY');
+        changeReadyStatus({ username, ready: true });
+        readyBtn.textContent = 'NOT READY';
+    } else {
+        socket.emit('NOT_READY');
+        changeReadyStatus({ username, ready: false });
+        readyBtn.textContent = 'READY';
+    }
 })
