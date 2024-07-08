@@ -1,4 +1,4 @@
-import { createElement } from '../helpers/dom-helper.mjs';
+import { createElement, removeClass } from '../helpers/dom-helper.mjs';
 
 const appendRoomElement = ({ name, numberOfUsers, onJoin = () => {} }) => {
     const roomsContainer = document.querySelector('#rooms-wrapper');
@@ -59,10 +59,40 @@ const getNumberOfUsersString = numberOfUsers => `${numberOfUsers} connected`;
 
 const removeRoomElement = name => document.querySelector(`.room[data-room-name='${name}']`)?.remove();
 
+const addTimer = (secondsLeft, id) => {
+    const timerElement = document.getElementById(id);
+    timerElement.innerText = secondsLeft;
+    timerElement.classList.remove('display-none');
+
+    const interval = setInterval(() => {
+        secondsLeft -= 1;
+        if (secondsLeft === 0) {
+            clearInterval(interval);
+            timerElement.classList.add('display-none');
+            resolve();
+        }
+        timerElement.innerText = secondsLeft;
+
+    }, 1000);
+}
+
+const startTimer = (secondsLeft) => addTimer(secondsLeft, 'timer');
+
+const gameTimer = (secondsLeft) => addTimer(secondsLeft, 'game-timer');
+
+const innerText = (text) => {
+    const textElement = document.getElementById("text-container");
+    textElement.innerHTML = text;
+    removeClass(textElement, "display-none");
+}
+
 export {
     appendRoomElement,
     updateNumberOfUsersInRoom,
     removeRoomElement,
     showRoom,
-    hideRoom    
+    hideRoom,
+    startTimer,
+    gameTimer,
+    innerText
 };
