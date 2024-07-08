@@ -17,7 +17,8 @@ if (!username) {
 
 const socket = io("http://localhost:3001/game", { query: { username } });
 
-let text = ''
+let text = '';
+let keyIdx = 0;
 
 const showPage = (page) => {
     removeClass(page, 'display-none');
@@ -28,6 +29,28 @@ const showPage = (page) => {
 const onJoinRoom = (roomName)=> {
     socket.emit("join-room", roomName);
     showPage(gamePage);
+}
+
+const handleKeyPress = event => {
+    const textArr = text.split('');
+    const currentKey = textArr[keyIdx];
+    const { key } = event;
+
+    if (!event.repeat && key === currentKey){
+        keyIdx+= 1;
+        const progress = Math.round((keyIdx / textArr.length) * 100);
+        setProgress({ username, progress });
+        
+        if (progress === 100) {
+            innerText(`<mark>${text}</mark>`)
+            return
+        }
+        innerText(`
+            <mark>${textArr.slice(0, keyIdx).join('')}</mark>
+            <span style="font-weight: bold; font-size: 20px; text-decoration: underline;">${textArr[keyIdx]}</span>
+            <span>${textArr.slice(keyIdx + 1).join('')}</span>
+        `);
+    }
 }
 
 socket.on('connect', () => {
@@ -110,7 +133,6 @@ socket.on("START_TIMER", ({
     SECONDS_TIMER_BEFORE_START_GAME,
     textId
 }) => {
-    console.log('START_TIMER');
     addClass(readyBtn, 'display-none');
     addClass(quitRoomBtn, 'display-none');
 
@@ -123,42 +145,15 @@ socket.on("START_TIMER", ({
 })
 
 socket.on("START_GAME", SECONDS_FOR_GAME => {
-    console.log('START_GAME');
     innerText(text);
     gameTimer(SECONDS_FOR_GAME)
+    window.addEventListener('keydown', handleKeyPress)
 })
 
 socket.on("END_GAME", () => {
     console.log('END_GAME');
+    window.removeEventListener('keydown', handleKeyPress)
 })
-
-
-    /* gameTimer(SECONDS_FOR_GAME).then(() => {
-        console.log("termino el juego");
-    }) */
-    
-    /* let keyIdx = 0;
-    window.addEventListener('keydown', (ev) => {
-        const textArr = text.split('');
-        const currentKey = textArr[keyIdx];
-
-        if (!ev.repeat){
-            const { key } = ev;
-            if (key === currentKey) {
-                keyIdx+= 1;
-                const progress = Math.round((keyIdx / textArr.length) * 100);
-                setProgress({ username, progress });
-                if (progress === 100) {
-                    alert('Ganaste');
-                    innerText(`<mark>${text}</mark>`)
-                    return
-                }
-                innerText(`<mark>${textArr.slice(0, keyIdx).join('')}</mark><span style="font-weight: bold; font-size: 20px; text-decoration: underline;">${textArr[keyIdx]}</span><span>${textArr.slice(keyIdx + 1).join('')}</span>`);
-            }
-            console.log(key, currentKey, keyIdx);
-        }
-    }) */
-
 
 addRoomBtn.addEventListener('click', () => {
     let roomName = ''
