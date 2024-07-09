@@ -2,6 +2,8 @@ type Room = {
   numberOfUsers: number;
   isHidden: boolean;
   raceResult: string[];
+  isFinished: boolean;
+  startGameInterval?: NodeJS.Timeout
 };
 
 type User = {
