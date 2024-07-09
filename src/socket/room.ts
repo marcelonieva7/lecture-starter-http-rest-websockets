@@ -35,6 +35,15 @@ const startGame = (io: Namespace, roomName: string ) => {
     textId : getRandomTextId(texts)
   });
 
+  const room = roomsMap.get(roomName)!;
+  const updatedRoom: Room = {
+    ...room,
+    isHidden: true
+  }          
+  roomsMap.set(roomName, updatedRoom);
+  
+  io.emit("UPDATE_ROOM", [roomName, updatedRoom]);
+
   const startGameTimeout = SECONDS_TIMER_BEFORE_START_GAME * 1000;
   const gameDurationTimeout = SECONDS_FOR_GAME * 1000;
 
