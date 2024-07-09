@@ -66,15 +66,9 @@ const resetRoom = () => {
     removeClass(readyBtn, 'display-none');
     removeClass(quitRoomBtn, 'display-none');
 
-    socket.emit("NOT_READY");
-    changeReadyStatus({ username, ready: false });
     readyBtn.textContent = 'READY';
 
-    const progress = 0 
-    socket.emit('PROGRESS', progress);
-    setProgress({ username, progress});
-
-    socket.emit('RESET_ROOM');
+    /* socket.emit('RESET_ROOM'); */
 }
 
 socket.on('connect', () => {
@@ -116,8 +110,6 @@ socket.on('create-room-done', ([name]) => {
 socket.on("SHOW_MESSAGE", (message) => showMessageModal({ message }));
 
 socket.on("UPDATE_ROOM", ([roomName, { numberOfUsers, isHidden }]) => {
-    console.log('UPDATE ROOM');
-    console.log(roomName, numberOfUsers, isHidden);
     if (isHidden) {
         hideRoom(roomName);
     } else {
@@ -129,7 +121,6 @@ socket.on("UPDATE_ROOM", ([roomName, { numberOfUsers, isHidden }]) => {
 socket.on("DELETE_ROOM", name => removeRoomElement(name));
 
 socket.on("SHOW_USERS_IN_ROOM" , users => {
-    console.log('SHOW_USERS_IN_ROOM', users);
     users.forEach(user => appendUserElement({
        username: user.name,
        ready: user.isReady,
@@ -175,7 +166,6 @@ socket.on("START_GAME", SECONDS_FOR_GAME => {
 })
 
 socket.on("TIME_EXPIRED", () => {
-    console.log('TIME_EXPIRED');
     window.removeEventListener('keydown', handleKeyPress)
 })
 

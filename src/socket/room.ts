@@ -1,14 +1,14 @@
 import { type Socket, type Namespace } from "socket.io";
 import { type User, type Room } from "./types.js";
 import { MAXIMUM_USERS_FOR_ONE_ROOM, SECONDS_FOR_GAME, SECONDS_TIMER_BEFORE_START_GAME } from "./config.js";
-import user, { users } from "./user.js";
+import { users } from "./user.js";
 import { texts } from "../data.js";
 
 const roomsMap = new Map<string, Room>();
 const isUniqueRoomName = (roomName: string) => roomsMap.get(roomName) === undefined;
 
-roomsMap.set("lobby", { numberOfUsers: 0, isHidden: false, raceResult: [] });
-roomsMap.set("game", { numberOfUsers: 22, isHidden: false, raceResult: [] });
+roomsMap.set("lobby", { numberOfUsers: 0, isHidden: false, raceResult: [], isFinished: false });
+roomsMap.set("game", { numberOfUsers: 22, isHidden: false, raceResult: [], isFinished: false });
 
 const getCurrentRoomName = (socket: Socket) => {
   let currrentRoomName: string | undefined;
@@ -29,7 +29,7 @@ const getUsersInRoom = (io: Namespace, roomName: string): User[] => {
     .filter((user): user is User => user !== undefined);
 };
 
-const startGame = (io: Namespace, roomName: string ) => {
+const startGame = (io: Namespace, socket: Socket, roomName: string ) => {
   io.to(roomName).emit("START_TIMER", {
     SECONDS_TIMER_BEFORE_START_GAME,
     textId : getRandomTextId(texts)
@@ -49,34 +49,66 @@ const startGame = (io: Namespace, roomName: string ) => {
 
   setTimeout(() => {
     io.to(roomName).emit("START_GAME", SECONDS_FOR_GAME);
-    setTimeout(() => {
+    const startGameInterval = setTimeout(() => {
+      const room = roomsMap.get(roomName)!;
+      if (room.isFinished) return;
+
       io.to(roomName).emit("TIME_EXPIRED")
 
       const { raceResult } = roomsMap.get(roomName)!
       io.to(roomName).emit("SHOW_RACE_RESULT", raceResult);
 
+      resetRoom(socket, io, roomName);
+
     }, gameDurationTimeout);
+    const room = roomsMap.get(roomName)!;
+    roomsMap.set(roomName, {
+      ...room,
+      startGameInterval: startGameInterval
+    })
   }, startGameTimeout);
 }
 
-const checkIfAllUsersAreReady = (io: Namespace, roomName: string): void => {
+const checkIfAllUsersAreReady = (io: Namespace, socket: Socket, roomName: string): void => {
   const usersInRoom = getUsersInRoom(io, roomName);
 
   if (usersInRoom.every(user => user.isReady)) {
-    startGame(io, roomName);
+    startGame(io, socket, roomName);
   }
 }
 
 const getRandomTextId = (texts: string[]) => Math.floor(Math.random() * texts.length);
 
+const resetRoom = (socket: Socket, io: Namespace, roomName: string) => {
+  const room = roomsMap.get(roomName)!;
+  room.startGameInterval && clearTimeout(room.startGameInterval)
+  room.raceResult = [];
+  room.isFinished = false;
+  roomsMap.set(roomName, room);
+
+  const usersInRoom = getUsersInRoom(io, roomName);
+  usersInRoom.forEach(user => {
+    const updatedUser = { ...user, isReady: false, isFinished: false };
+    users.set(socket.id, updatedUser);
+    io.to(roomName).emit("UPDATE_USERS_STATUS", updatedUser);
+    io.to(roomName).emit("UPDATE_PROGRESS", { name: user.name, progress: 0 });
+  })
+}
+
 export default (io: Namespace) => {
   io.on("connection", socket => {
+    socket.on("disconnecting", () => {
+      const room = getCurrentRoomName(socket)!;
+      console.log("=========================");
+      console.log(room, "room");
+    })
+
     socket.emit("show-rooms", Array.from(roomsMap));
 
     socket.on('create-room', (roomName: string) => {
       
       if (isUniqueRoomName(roomName)) {
-        const newRoom = roomsMap.set(roomName, { numberOfUsers: 0, isHidden: false, raceResult: [] });
+        const newRoom = roomsMap.set(roomName, { numberOfUsers: 0, isHidden: false, raceResult: [], isFinished: false });
         socket.emit("create-room-done", [roomName, newRoom]);
         io.emit("ADD_ROOM", [roomName, newRoom]);
 
@@ -86,8 +118,6 @@ export default (io: Namespace) => {
     })
 
     socket.on('join-room', (roomName: string) => {
-      console.log('join-room', roomName);
-      
       const prevRoomName = getCurrentRoomName(socket)
 
       if (roomName === prevRoomName) {
@@ -142,7 +172,7 @@ export default (io: Namespace) => {
           socket.to(currentRoomName).emit("DELETE_USER_IN_ROOM", users.get(socket.id));
           io.emit("UPDATE_ROOM", [currentRoomName, updatedRoom]);
 
-          checkIfAllUsersAreReady(io, currentRoomName);
+          checkIfAllUsersAreReady(io, socket, currentRoomName);
 
         } else {
           roomsMap.delete(currentRoomName);
@@ -160,7 +190,7 @@ export default (io: Namespace) => {
       const room = getCurrentRoomName(socket)!
       socket.to(room).emit("UPDATE_USERS_STATUS", updatedUser);
 
-      checkIfAllUsersAreReady(io, room);
+      checkIfAllUsersAreReady(io, socket, room);
     })
 
     socket.on("NOT_READY", () => {
@@ -194,14 +224,8 @@ export default (io: Namespace) => {
       if (usersInRoom.every(user => user.isFinished)) {
         const { raceResult } = roomsMap.get(roomName)!
         io.to(roomName).emit("SHOW_RACE_RESULT", raceResult);
+        resetRoom(socket, io, roomName)
       }
-    })
-
-    socket.on('RESET_ROOM', () => {
-      const roomName = getCurrentRoomName(socket)!
-      const room = roomsMap.get(roomName)!;
-      room.raceResult = [];
-      roomsMap.set(roomName, room);
     })
   });
 };
