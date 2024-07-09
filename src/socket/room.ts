@@ -163,7 +163,7 @@ export default (io: Namespace) => {
       
       if (isUniqueRoomName(roomName)) {
         const newRoom = roomsMap.set(roomName, { numberOfUsers: 0, isHidden: false, raceResult: [], isFinished: false, isStarted: false });
-        socket.emit("create-room-done", [roomName, newRoom]);
+        socket.emit("create-room-done", roomName);
         io.emit("ADD_ROOM", [roomName, newRoom]);
 
       } else {

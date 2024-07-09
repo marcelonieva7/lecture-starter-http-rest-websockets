@@ -30,6 +30,8 @@ const showPage = (page) => {
 
 const onJoinRoom = (roomName)=> {
     socket.emit("join-room", roomName);
+    const roomNameElement = document.getElementById('room-name');
+    roomNameElement.textContent = roomName;
     showPage(gamePage);
 }
 
@@ -100,8 +102,10 @@ socket.on("ADD_ROOM", ([name, { numberOfUsers }]) => {
     appendRoomElement({ name, numberOfUsers, onJoin: () => onJoinRoom(name) });
 })
 
-socket.on('create-room-done', ([name]) => {
+socket.on('create-room-done', (name) => {
     socket.emit('join-room', name);
+    const roomNameElement = document.getElementById('room-name');
+    roomNameElement.textContent = name;
     showPage(gamePage);
 })
 
