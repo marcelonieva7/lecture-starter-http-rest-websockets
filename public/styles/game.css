@@ -39,6 +39,16 @@
     font-size: large;
 }
 
+#text-container mark {
+    background-color: lawngreen;
+}
+
+#current-key {
+    font-weight: bold;
+    font-size: 20px;
+    text-decoration: underline;
+}
+
 #game-timer {
     position: absolute;
     bottom: 15px;
