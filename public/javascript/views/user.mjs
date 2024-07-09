@@ -74,10 +74,4 @@ const wipeUsers = () => {
     usersContainer.innerHTML = '';
 };
 
-export {
-    appendUserElement,
-    changeReadyStatus,
-    setProgress,
-    removeUserElement,
-    wipeUsers    
-};
+export { appendUserElement, changeReadyStatus, setProgress, removeUserElement, wipeUsers };

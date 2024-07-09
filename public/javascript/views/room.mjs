@@ -45,12 +45,12 @@ const updateNumberOfUsersInRoom = ({ name, numberOfUsers }) => {
     roomConnectedUsersElement.dataset.roomNumberOfUsers = numberOfUsers;
 };
 
-const showRoom = (name) => {
+const showRoom = name => {
     const roomElement = document.querySelector(`.room[data-room-name='${name}']`);
     roomElement.style = '';
 };
 
-const hideRoom = (name) => {
+const hideRoom = name => {
     const roomElement = document.querySelector(`.room[data-room-name='${name}']`);
     roomElement.style = 'display: none';
 };
@@ -71,27 +71,26 @@ const addTimer = (secondsLeft, id) => {
             timerElement.classList.add('display-none');
         }
         timerElement.innerText = secondsLeft;
-
     }, 1000);
 
-    return interval
-}
+    return interval;
+};
 
-const startTimer = (secondsLeft) => {
+const startTimer = secondsLeft => {
     const interval = addTimer(secondsLeft, 'timer');
-    return interval
-}
+    return interval;
+};
 
-const gameTimer = (secondsLeft) => {
+const gameTimer = secondsLeft => {
     const interval = addTimer(secondsLeft, 'game-timer');
-    return interval
-}
+    return interval;
+};
 
-const innerText = (text) => {
-    const textElement = document.getElementById("text-container");
+const innerText = text => {
+    const textElement = document.getElementById('text-container');
     textElement.innerHTML = text;
-    removeClass(textElement, "display-none");
-}
+    removeClass(textElement, 'display-none');
+};
 
 export {
     appendRoomElement,

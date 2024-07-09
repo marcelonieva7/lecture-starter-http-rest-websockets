@@ -19,6 +19,6 @@ router.get('/texts/:id', (req, res) => {
         return;
     }
     res.json({ text });
-})
+});
 
 export default router;
