@@ -7,9 +7,6 @@ import { texts } from "../data.js";
 const roomsMap = new Map<string, Room>();
 const isUniqueRoomName = (roomName: string) => roomsMap.get(roomName) === undefined;
 
-roomsMap.set("lobby", { numberOfUsers: 0, isHidden: false, raceResult: [], isFinished: false });
-roomsMap.set("game", { numberOfUsers: 22, isHidden: false, raceResult: [], isFinished: false });
-
 const getCurrentRoomName = (socket: Socket) => {
   let currrentRoomName: string | undefined;
   roomsMap.forEach((_room, name) => {
@@ -38,7 +35,8 @@ const startGame = (io: Namespace, socket: Socket, roomName: string ) => {
   const room = roomsMap.get(roomName)!;
   const updatedRoom: Room = {
     ...room,
-    isHidden: true
+    isHidden: true,
+    isStarted: true
   }          
   roomsMap.set(roomName, updatedRoom);
   
@@ -84,6 +82,7 @@ const resetRoom = (socket: Socket, io: Namespace, roomName: string) => {
   room.startGameInterval && clearTimeout(room.startGameInterval)
   room.raceResult = [];
   room.isFinished = false;
+  room.isStarted = false;
   roomsMap.set(roomName, room);
 
   const usersInRoom = getUsersInRoom(io, roomName);
@@ -95,12 +94,67 @@ const resetRoom = (socket: Socket, io: Namespace, roomName: string) => {
   })
 }
 
+const removeUserFromRoom = (socket: Socket, io: Namespace) => {
+  const currentRoomName = getCurrentRoomName(socket)
+  if (currentRoomName) {
+    socket.leave(currentRoomName);
+    const currentRoom = roomsMap.get(currentRoomName)!;
+
+    if (currentRoom.numberOfUsers > 1) {
+      const updatedRoom: Room = {
+        ...currentRoom,
+        numberOfUsers: currentRoom.numberOfUsers - 1,
+        isHidden: false
+      };
+      roomsMap.set(currentRoomName, updatedRoom);
+
+      socket.to(currentRoomName).emit("DELETE_USER_IN_ROOM", users.get(socket.id));
+      io.emit("UPDATE_ROOM", [currentRoomName, updatedRoom]);
+
+      if (!currentRoom.isStarted) {        
+        checkIfAllUsersAreReady(io, socket, currentRoomName);
+      }
+
+    } else {
+      roomsMap.delete(currentRoomName);
+      io.emit("DELETE_ROOM", currentRoomName);
+    }
+  }
+}
+
 export default (io: Namespace) => {
   io.on("connection", socket => {
     socket.on("disconnecting", () => {
-      const room = getCurrentRoomName(socket)!;
-      console.log("=========================");
-      console.log(room, "room");
+      const currentRoomName = getCurrentRoomName(socket);
+      if (currentRoomName) {
+        const currentRoom = roomsMap.get(currentRoomName)!;
+
+        if (currentRoom.numberOfUsers > 1) {
+          const updatedRoom: Room = {
+            ...currentRoom,
+            numberOfUsers: currentRoom.numberOfUsers - 1,
+            isHidden: false
+          };
+          roomsMap.set(currentRoomName, updatedRoom);
+
+          socket.to(currentRoomName).emit("DELETE_USER_IN_ROOM", users.get(socket.id));
+          const { numberOfUsers, isHidden} = updatedRoom
+          socket.broadcast.emit("UPDATE_ROOM", [currentRoomName, { numberOfUsers, isHidden}]);
+          
+          if (!currentRoom.isStarted) {
+            checkIfAllUsersAreReady(io, socket, currentRoomName);
+          }
+
+        } else {
+          roomsMap.delete(currentRoomName);
+          socket.broadcast.emit("DELETE_ROOM", currentRoomName);
+        }
+
+        const room = roomsMap.get(currentRoomName)!;
+        room.raceResult = room.raceResult.filter(user => user !== users.get(socket.id)?.name);
+      
+        roomsMap.set(currentRoomName, room);
+      }    
     })
 
     socket.emit("show-rooms", Array.from(roomsMap));
@@ -108,7 +162,7 @@ export default (io: Namespace) => {
     socket.on('create-room', (roomName: string) => {
       
       if (isUniqueRoomName(roomName)) {
-        const newRoom = roomsMap.set(roomName, { numberOfUsers: 0, isHidden: false, raceResult: [], isFinished: false });
+        const newRoom = roomsMap.set(roomName, { numberOfUsers: 0, isHidden: false, raceResult: [], isFinished: false, isStarted: false });
         socket.emit("create-room-done", [roomName, newRoom]);
         io.emit("ADD_ROOM", [roomName, newRoom]);
 
@@ -155,30 +209,7 @@ export default (io: Namespace) => {
     })
 
     socket.on('quit-room', () => {
-      const currentRoomName = getCurrentRoomName(socket)
-
-      if (currentRoomName) {
-        socket.leave(currentRoomName);
-        const currentRoom = roomsMap.get(currentRoomName)!;
-
-        if (currentRoom.numberOfUsers > 1) {
-          const updatedRoom: Room = {
-            ...currentRoom,
-            numberOfUsers: currentRoom.numberOfUsers - 1,
-            isHidden: false
-          };
-          roomsMap.set(currentRoomName, updatedRoom);
-
-          socket.to(currentRoomName).emit("DELETE_USER_IN_ROOM", users.get(socket.id));
-          io.emit("UPDATE_ROOM", [currentRoomName, updatedRoom]);
-
-          checkIfAllUsersAreReady(io, socket, currentRoomName);
-
-        } else {
-          roomsMap.delete(currentRoomName);
-          io.emit("DELETE_ROOM", currentRoomName);
-        }
-      }
+      removeUserFromRoom(socket, io);
     })
 
     socket.on("READY", () => {

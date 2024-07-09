@@ -67,8 +67,6 @@ const resetRoom = () => {
     removeClass(quitRoomBtn, 'display-none');
 
     readyBtn.textContent = 'READY';
-
-    /* socket.emit('RESET_ROOM'); */
 }
 
 socket.on('connect', () => {

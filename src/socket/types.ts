@@ -3,7 +3,8 @@ type Room = {
   isHidden: boolean;
   raceResult: string[];
   isFinished: boolean;
-  startGameInterval?: NodeJS.Timeout
+  startGameInterval?: NodeJS.Timeout;
+  isStarted: boolean;
 };
 
 type User = {
