@@ -73,11 +73,19 @@ const addTimer = (secondsLeft, id) => {
         timerElement.innerText = secondsLeft;
 
     }, 1000);
+
+    return interval
 }
 
-const startTimer = (secondsLeft) => addTimer(secondsLeft, 'timer');
+const startTimer = (secondsLeft) => {
+    const interval = addTimer(secondsLeft, 'timer');
+    return interval
+}
 
-const gameTimer = (secondsLeft) => addTimer(secondsLeft, 'game-timer');
+const gameTimer = (secondsLeft) => {
+    const interval = addTimer(secondsLeft, 'game-timer');
+    return interval
+}
 
 const innerText = (text) => {
     const textElement = document.getElementById("text-container");
