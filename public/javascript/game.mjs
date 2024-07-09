@@ -39,15 +39,16 @@ const handleKeyPress = event => {
     if (!event.repeat && key === currentKey){
         keyIdx+= 1;
         const progress = Math.round((keyIdx / textArr.length) * 100);
+        socket.emit('PROGRESS', progress);
         setProgress({ username, progress });
-        
+
         if (progress === 100) {
             innerText(`<mark>${text}</mark>`)
             return
         }
         innerText(`
             <mark>${textArr.slice(0, keyIdx).join('')}</mark>
-            <span style="font-weight: bold; font-size: 20px; text-decoration: underline;">${textArr[keyIdx]}</span>
+            <span id="current-key">${textArr[keyIdx]}</span>
             <span>${textArr.slice(keyIdx + 1).join('')}</span>
         `);
     }
@@ -153,6 +154,10 @@ socket.on("START_GAME", SECONDS_FOR_GAME => {
 socket.on("END_GAME", () => {
     console.log('END_GAME');
     window.removeEventListener('keydown', handleKeyPress)
+})
+
+socket.on("UPDATE_PROGRESS", ({ name, progress }) => {
+    setProgress({ username: name, progress });
 })
 
 addRoomBtn.addEventListener('click', () => {

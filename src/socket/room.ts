@@ -157,5 +157,11 @@ export default (io: Namespace) => {
       const room = getCurrentRoomName(socket)!
       socket.to(room).emit("UPDATE_USERS_STATUS", updatedUser);
     })
+
+    socket.on("PROGRESS", (progress) => {
+      const { name } = users.get(socket.id)!;
+      const room = getCurrentRoomName(socket)!
+      socket.to(room).emit("UPDATE_PROGRESS", { name, progress });
+    })
   });
 };
