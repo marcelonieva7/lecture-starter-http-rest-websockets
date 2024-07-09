@@ -19,7 +19,11 @@ export default (io: Namespace) => {
         io.to(socket.id).emit("username-taken");
         socket.disconnect();
       } else {
-        users.set(socket.id, { name: username, isReady: false });
+        users.set(socket.id, {
+          name: username,
+          isReady: false,
+          isFinished: false
+        });
       }
 
       socket.on("disconnect", () => {
