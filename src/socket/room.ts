@@ -1,14 +1,14 @@
 import { type Socket, type Namespace } from "socket.io";
 import { type User, type Room } from "./types.js";
 import { MAXIMUM_USERS_FOR_ONE_ROOM, SECONDS_FOR_GAME, SECONDS_TIMER_BEFORE_START_GAME } from "./config.js";
-import { users } from "./user.js";
+import user, { users } from "./user.js";
 import { texts } from "../data.js";
 
 const roomsMap = new Map<string, Room>();
 const isUniqueRoomName = (roomName: string) => roomsMap.get(roomName) === undefined;
 
-roomsMap.set("lobby", { numberOfUsers: 0, isHidden: false });
-roomsMap.set("game", { numberOfUsers: 22, isHidden: false });
+roomsMap.set("lobby", { numberOfUsers: 0, isHidden: false, raceResult: [] });
+roomsMap.set("game", { numberOfUsers: 22, isHidden: false, raceResult: [] });
 
 const getCurrentRoomName = (socket: Socket) => {
   let currrentRoomName: string | undefined;
@@ -49,7 +49,13 @@ const startGame = (io: Namespace, roomName: string ) => {
 
   setTimeout(() => {
     io.to(roomName).emit("START_GAME", SECONDS_FOR_GAME);
-    setTimeout(() => io.to(roomName).emit("END_GAME"), gameDurationTimeout);
+    setTimeout(() => {
+      io.to(roomName).emit("TIME_EXPIRED")
+
+      const { raceResult } = roomsMap.get(roomName)!
+      io.to(roomName).emit("SHOW_RACE_RESULT", raceResult);
+
+    }, gameDurationTimeout);
   }, startGameTimeout);
 }
 
@@ -70,7 +76,7 @@ export default (io: Namespace) => {
     socket.on('create-room', (roomName: string) => {
       
       if (isUniqueRoomName(roomName)) {
-        const newRoom = roomsMap.set(roomName, { numberOfUsers: 0, isHidden: false });
+        const newRoom = roomsMap.set(roomName, { numberOfUsers: 0, isHidden: false, raceResult: [] });
         socket.emit("create-room-done", [roomName, newRoom]);
         io.emit("ADD_ROOM", [roomName, newRoom]);
 
@@ -171,6 +177,31 @@ export default (io: Namespace) => {
       const { name } = users.get(socket.id)!;
       const room = getCurrentRoomName(socket)!
       socket.to(room).emit("UPDATE_PROGRESS", { name, progress });
+    })
+
+    socket.on("USER_COMPLETE_RACE", () => {
+      const user = users.get(socket.id)!;
+
+      const roomName = getCurrentRoomName(socket)!
+      const room = roomsMap.get(roomName)!;
+      room.raceResult.push(user.name);
+      roomsMap.set(roomName, room);
+
+      users.set(socket.id, { ...user, isFinished: true });
+
+      const usersInRoom = getUsersInRoom(io, roomName);
+
+      if (usersInRoom.every(user => user.isFinished)) {
+        const { raceResult } = roomsMap.get(roomName)!
+        io.to(roomName).emit("SHOW_RACE_RESULT", raceResult);
+      }
+    })
+
+    socket.on('RESET_ROOM', () => {
+      const roomName = getCurrentRoomName(socket)!
+      const room = roomsMap.get(roomName)!;
+      room.raceResult = [];
+      roomsMap.set(roomName, room);
     })
   });
 };

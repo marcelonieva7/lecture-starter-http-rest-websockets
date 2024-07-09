@@ -1,5 +1,5 @@
 import { addClass, removeClass } from './helpers/dom-helper.mjs';
-import { showMessageModal, showInputModal } from './views/modal.mjs';
+import { showMessageModal, showInputModal, showResultsModal } from './views/modal.mjs';
 import { startTimer, appendRoomElement, gameTimer, hideRoom, removeRoomElement, showRoom, updateNumberOfUsersInRoom, innerText } from './views/room.mjs';
 import { appendUserElement, changeReadyStatus, removeUserElement, setProgress, wipeUsers } from './views/user.mjs';
 
@@ -19,6 +19,8 @@ const socket = io("http://localhost:3001/game", { query: { username } });
 
 let text = '';
 let keyIdx = 0;
+let gameTimerInterval;
+let startTimerInterval
 
 const showPage = (page) => {
     removeClass(page, 'display-none');
@@ -44,6 +46,8 @@ const handleKeyPress = event => {
 
         if (progress === 100) {
             innerText(`<mark>${text}</mark>`)
+            window.removeEventListener('keydown', handleKeyPress);
+            socket.emit("USER_COMPLETE_RACE");
             return
         }
         innerText(`
@@ -52,6 +56,25 @@ const handleKeyPress = event => {
             <span>${textArr.slice(keyIdx + 1).join('')}</span>
         `);
     }
+}
+
+const resetRoom = () => {
+    keyIdx = 0;
+    text = '';
+    innerText('');
+
+    removeClass(readyBtn, 'display-none');
+    removeClass(quitRoomBtn, 'display-none');
+
+    socket.emit("NOT_READY");
+    changeReadyStatus({ username, ready: false });
+    readyBtn.textContent = 'READY';
+
+    const progress = 0 
+    socket.emit('PROGRESS', progress);
+    setProgress({ username, progress});
+
+    socket.emit('RESET_ROOM');
 }
 
 socket.on('connect', () => {
@@ -142,22 +165,30 @@ socket.on("START_TIMER", ({
         text = resJson.text;
     })
 
-    startTimer(SECONDS_TIMER_BEFORE_START_GAME);
+    startTimerInterval = startTimer(SECONDS_TIMER_BEFORE_START_GAME);
 })
 
 socket.on("START_GAME", SECONDS_FOR_GAME => {
     innerText(text);
-    gameTimer(SECONDS_FOR_GAME)
+    gameTimerInterval = gameTimer(SECONDS_FOR_GAME)
     window.addEventListener('keydown', handleKeyPress)
 })
 
-socket.on("END_GAME", () => {
-    console.log('END_GAME');
+socket.on("TIME_EXPIRED", () => {
+    console.log('TIME_EXPIRED');
     window.removeEventListener('keydown', handleKeyPress)
 })
 
 socket.on("UPDATE_PROGRESS", ({ name, progress }) => {
     setProgress({ username: name, progress });
+})
+
+socket.on("SHOW_RACE_RESULT", (raceResult) => {
+    showResultsModal({ usersSortedArray: raceResult, onClose: resetRoom });
+    const gameTimer = document.getElementById('game-timer');
+    addClass(gameTimer, 'display-none');
+    gameTimerInterval && clearInterval(gameTimerInterval);
+    startTimerInterval && clearInterval(startTimerInterval);
 })
 
 addRoomBtn.addEventListener('click', () => {
